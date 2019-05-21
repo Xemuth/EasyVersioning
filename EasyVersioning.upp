@@ -1,0 +1,10 @@
+uses
+	Core;
+
+file
+	EasyVersioning.cpp,
+	EasyVersioning.h;
+
+mainconfig
+	"" = "";
+
