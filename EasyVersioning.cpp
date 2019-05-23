@@ -5,7 +5,7 @@
 using namespace Upp;
 
 
-EasyVersioning::EasyVersioning(Upp::String _pathNewSoftWare, void* _target){
+EasyVersioning::EasyVersioning(Upp::String _pathNewSoftWare, Versioning* _target){
 	pathNewSoftWare =	_pathNewSoftWare;
 	TargertedSoft = (Versioning*) _target;
 }
@@ -13,22 +13,24 @@ EasyVersioning::EasyVersioning(){}
 
 void EasyVersioning::isOutDated(){
 	const Vector<String>& cmdline = CommandLine();
+	Cout() << "getCount : " << cmdline.GetCount() <<"\n";
 	for(int i = 0; i < cmdline.GetCount(); i++) {
 		Cout() << "Commande : "  << i << " = " << cmdline[i] <<"\n";
 		if( cmdline[i].Compare("--Outdated") == 0 ){
 			if(isStringisANumber(cmdline[i+1])){
 				int versionDudDemandeur = std::stoi(cmdline[i+1].ToStd());
+				Cout() <<"Version du fichier : " << TargertedSoft->getVersioningVersion() <<"\n";
 				if(versionDudDemandeur < TargertedSoft->getVersioningVersion()){
 					Cout() << "Version outdater !" <<"\n";
-					Exit(1); // On renvoie 1 si le client est outdate	
+					Exit(1); // On renvoie 1 si le client est outdate
 				}else{
 					Cout() << "Version a jour !" <<"\n";
 					Exit(0); //On renvoie 0 si le client est à jour
 				}
 			}
-			break;		
+		//	break;
 		}
-	}	
+	}
 }
 
 bool EasyVersioning::isStringisANumber(Upp::String stringNumber){
@@ -44,108 +46,125 @@ bool EasyVersioning::isStringisANumber(Upp::String stringNumber){
 }
 
 bool EasyVersioning::CheckForUpdate(){
-	Upp::String path = pathNewSoftWare + "\\" + GetExeTitle() +".exe";
-	Cout() << "Chemin sur lequel taper : " << path <<"\n";
-	if(FileExists(path.ToStd().c_str())){
-		try{
-			STARTUPINFO si;
-		    PROCESS_INFORMATION pi;
-		    ZeroMemory( &si, sizeof(si) );
-		    si.cb = sizeof(si);
-		    ZeroMemory( &pi, sizeof(pi) );
-		    
-		    std::stringstream ss;
-			ss <<  " --Outdated ";
-			ss <<  std::to_string( TargertedSoft->getVersioningVersion()); 
-			std::string name = ss.str();
-		    char* cmd =(char*) name.c_str();
-		  	int code =0;
-			    // Start the child process. */
-			if( CreateProcess(path.ToStd().c_str(),   // No module name (use command line)
-						       	cmd,        // Command line
-						        NULL,           // Process handle not inheritable
-						        NULL,           // Thread handle not inheritable
-						        FALSE,          // Set handle inheritance to FALSE
-						        0,              // No creation flags
-						        NULL,           // Use parent's environment block
-						        NULL,           // Use parent's starting directory 
-						        &si,            // Pointer to STARTUPINFO structure
-						        &pi )           // Pointer to PROCESS_INFORMATION structure
-						    ) 
-			{ 
-				WaitForSingleObject(pi.hProcess,INFINITE);
-
-				DWORD exit_code;
-				GetExitCodeProcess(pi.hProcess, &exit_code);
-				CloseHandle( pi.hProcess );
-				CloseHandle( pi.hThread );
-				code = exit_code;
-			}
-			Cout() << "Reponse du process : " << code <<"\n";
-		/*	FileIn in(path);
-			Upp::String data ="";
-				Cout() << "2" <<"\n";
-			if(!in) {
-				LOG("Failed to open the file");
+	if(checkLegacy()){
+		Upp::String path = pathNewSoftWare + "\\" + GetExeTitle() +".exe";
+		Cout() << "Chemin sur lequel taper : " << path <<"\n";
+		if(FileExists(path.ToStd().c_str())){
+			try{
+				STARTUPINFO si;
+			    PROCESS_INFORMATION pi;
+			    ZeroMemory( &si, sizeof(si) );
+			    si.cb = sizeof(si);
+			    ZeroMemory( &pi, sizeof(pi) );
+			    
+			    std::stringstream ss;
+				ss <<  " --Outdated ";
+				ss <<  std::to_string( TargertedSoft->getVersioningVersion());
+				std::string name = ss.str();
+			    char* cmd =(char*) name.c_str();
+			  	int code =0;
+				    // Start the child process. */
+				if( CreateProcess(path.ToStd().c_str(),   // No module name (use command line)
+							       	cmd,        // Command line
+							        NULL,           // Process handle not inheritable
+							        NULL,           // Thread handle not inheritable
+							        FALSE,          // Set handle inheritance to FALSE
+							        0,              // No creation flags
+							        NULL,           // Use parent's environment block
+							        NULL,           // Use parent's starting directory 
+							        &si,            // Pointer to STARTUPINFO structure
+							        &pi )           // Pointer to PROCESS_INFORMATION structure
+							    )
+				{
+					WaitForSingleObject(pi.hProcess,INFINITE);
+					
+					DWORD exit_code;
+					GetExitCodeProcess(pi.hProcess, &exit_code);
+					CloseHandle( pi.hProcess );
+					CloseHandle( pi.hThread );
+					code = exit_code;
+				}
+				Cout() << "Reponse du process : " << code <<"\n";
+			/*	FileIn in(path);
+				Upp::String data ="";
+					Cout() << "2" <<"\n";
+				if(!in) {
+					LOG("Failed to open the file");
+					return false;
+				}
+					Cout() << "3" <<"\n";
+				in.Seek(0);
+				while(!in.IsEof())
+					data = in.GetLine();
+					Cout() << "4" <<"\n";*/
+				if(code == 1){
+					return true;
+				}
+			}catch(...){
 				return false;
 			}
-				Cout() << "3" <<"\n";
-			in.Seek(0);
-			while(!in.IsEof())
-				data = in.GetLine();
-				Cout() << "4" <<"\n";*/
-			if(code == 1){
-				return true;
-			}
-		}catch(...){
-			return false;
 		}
+		return false;
 	}
-	return false;
+}
+bool EasyVersioning::checkLegacy(){
+	if(GetExeFolder().Compare(this->pathNewSoftWare) ==0){
+		Cout() << "Vous utilisez l'exe serveur"<<"\n";
+		return false;
+	}
+	if(!FileExists(GetExeFolder() +"\\versioning.exe")){
+		Cout() << "Vous ne possédé pas Versionning.exe"<<"\n";
+		return false;
+	}
+	return true;
 }
 
 void EasyVersioning::Update(bool force){
-	if(force || CheckForUpdate()){
-		String exePath = GetExeFilePath();
-		String exeToGet =pathNewSoftWare +"\\"+GetExeTitle() +".exe";
-		Cout() <<"Exe to Get  : " << exeToGet <<"\n";
-		if( FileExists(exeToGet)){
-			STARTUPINFO lpStartupInfo;
-		    PROCESS_INFORMATION lpProcessInfo;
-		
-		    ZeroMemory( &lpStartupInfo, sizeof( lpStartupInfo ) );
-		    lpStartupInfo.cb = sizeof( lpStartupInfo );
-		    ZeroMemory( &lpProcessInfo, sizeof( lpProcessInfo ) );
-			exePath.Replace(" ","@");
-			exeToGet.Replace(" ","@");
-			std::stringstream ss;
-			ss <<  exePath.ToStd();
-			ss << ";";
-			ss << exeToGet.ToStd();  
-			std::string name = ss.str();
-			Cout() << "cmd : "  << String(ss.str()) <<"\n";
-		    char* cmd =(char*) name.c_str();
-		    std::string path = Upp::String(GetExeFolder() +"\\versioning.exe").ToStd();
-		    BOOL result = CreateProcess( path.c_str() ,
-										cmd, 
-										NULL,           // Process handle not inheritable
-										NULL,           // Thread handle not inheritable
-										FALSE,          // Set handle inheritance to FALSE
-										0,              // No creation flags
-										NULL,           // Use parent's environment block
-										NULL,           // Use parent's starting directory 
-										&lpStartupInfo,
-										&lpProcessInfo); 
-		    Exit(0);
+	if(checkLegacy()){
+		if(force ){
+			String exePath = GetExeFilePath();
+			String exeToGet =pathNewSoftWare +"\\"+GetExeTitle() +".exe";
+			Cout() <<"Exe to Get  : " << exeToGet <<"\n";
+			if( FileExists(exeToGet)){
+				STARTUPINFO lpStartupInfo;
+			    PROCESS_INFORMATION lpProcessInfo;
+			
+			    ZeroMemory( &lpStartupInfo, sizeof( lpStartupInfo ) );
+			    lpStartupInfo.cb = sizeof( lpStartupInfo );
+			    ZeroMemory( &lpProcessInfo, sizeof( lpProcessInfo ) );
+				exePath.Replace(" ","@");
+				exeToGet.Replace(" ","@");
+				std::stringstream ss;
+				ss <<  exePath.ToStd();
+				ss << ";";
+				ss << exeToGet.ToStd();
+				std::string name = ss.str();
+				Cout() << "cmd : "  << String(ss.str()) <<"\n";
+			    char* cmd =(char*) name.c_str();
+			    std::string path = Upp::String(GetExeFolder() +"\\versioning.exe").ToStd();
+			    BOOL result = CreateProcess( path.c_str() ,
+											cmd,
+											NULL,           // Process handle not inheritable
+											NULL,           // Thread handle not inheritable
+											FALSE,          // Set handle inheritance to FALSE
+											0,              // No creation flags
+											NULL,           // Use parent's environment block
+											NULL,           // Use parent's starting directory
+											&lpStartupInfo,
+											&lpProcessInfo);
+			    Exit(0);
+			}
 		}
 	}
 }
 	
 int Versioning::getVersioningVersion(){
+	Cout() << "GetVersion: " +String( std::to_string(Versionning_VERSION)) << "\n";
 	return Versionning_VERSION;
 }
 void Versioning::setVersioningVersion(int _version){
 	Versionning_VERSION	= _version;
+	Cout() << "SetVersion: " + String(std::to_string(Versionning_VERSION)) << "\n";
 }
 /*
 //-----------------------------------------------------------------------------

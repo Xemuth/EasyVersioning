@@ -12,7 +12,7 @@ class EasyVersioning;
 			Versioning* TargertedSoft= nullptr; //Ptr to the actual software that need update
 			
 			Upp::String pathNewSoftWare="";
-			
+			bool checkLegacy();
 			bool isStringisANumber(Upp::String stringNumber);
 			
 		//	Upp::String ConvertLocalPathToUNC(Upp::String szFilePath );
@@ -20,10 +20,10 @@ class EasyVersioning;
 			
 		public:
 		EasyVersioning();
-		EasyVersioning(Upp::String _pathDirNewSoftWare, void* _target); //Path must be the path to the directory contening new Soft and VERSION file contening number of version
+		EasyVersioning(Upp::String _pathDirNewSoftWare,Versioning* _target); //Path must be the path to the directory contening new Soft and VERSION file contening number of version
 																		//Target represent
 																		//object inheritted
-																		//from Versioning 
+																		//from Versioning
 																		
 	    
 		bool CheckForUpdate();
@@ -32,8 +32,8 @@ class EasyVersioning;
 	};
 	
 	class Versioning{
-		private: 
-			int Versionning_VERSION =0;
+		private:
+			int Versionning_VERSION = 0;
 		public:
 			int getVersioningVersion();
 			void setVersioningVersion(int _version);
