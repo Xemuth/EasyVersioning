@@ -14,7 +14,7 @@ class EasyVersioning;
 			Upp::String pathNewSoftWare="";
 			bool checkLegacy();
 			bool isStringisANumber(Upp::String stringNumber);
-			
+			bool CheckDate();
 		//	Upp::String ConvertLocalPathToUNC(Upp::String szFilePath );
 		//	Upp::String ConvertUNCToLocalPath(Upp::String strUNC);
 			
@@ -24,8 +24,7 @@ class EasyVersioning;
 																		//Target represent
 																		//object inheritted
 																		//from Versioning
-																		
-	    
+
 		bool CheckForUpdate();
 		void Update(bool force =false);
 		void isOutDated(); //Check and Return if program on entry is outdated or not

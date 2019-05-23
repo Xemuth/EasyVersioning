@@ -1,7 +1,8 @@
 #include <Core/Core.h>
 #include "EasyVersioning.h"
+#include <fstream>
 #include <cctype>
-
+#include <chrono>
 using namespace Upp;
 
 
@@ -116,12 +117,47 @@ bool EasyVersioning::checkLegacy(){
 		Cout() << "Vous ne possédé pas Versionning.exe"<<"\n";
 		return false;
 	}
+	if(!CheckDate()){
+		Cout() << "La dernière mise à jour était il y'a moins de 30 min"<<"\n";
+		return false;	
+	}
 	return true;
+}
+
+bool EasyVersioning::CheckDate(){
+	FileIn in("timer.tms");
+	if(!in) {
+			auto now = std::chrono::system_clock::now();
+			std::chrono::time_point<std::chrono::system_clock> epoch;
+			std::chrono::microseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - epoch);
+			
+			std::ofstream myfile;
+			myfile.open ("timer.tms");
+			myfile <<  std::to_string(ms.count());
+			myfile.close();
+			return true;
+		}
+		in.Seek(0);
+		String data="";
+		while(!in.IsEof())
+			data << in.GetLine();
+		
+		auto now = std::chrono::system_clock::now();
+		std::chrono::time_point<std::chrono::system_clock> epoch;
+		std::chrono::microseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - epoch);
+		if (std::stol(std::to_string(ms.count())) - std::stol(data.ToStd()) > 18000000){ //Dégueulasse mais bon 'lol';
+			std::ofstream myfile;
+			myfile.open ("timer.tms");
+			myfile <<  std::to_string(ms.count());
+			myfile.close();
+			return true;
+		}
+		return false;
 }
 
 void EasyVersioning::Update(bool force){
 	if(checkLegacy()){
-		if(force ){
+		if(force){
 			String exePath = GetExeFilePath();
 			String exeToGet =pathNewSoftWare +"\\"+GetExeTitle() +".exe";
 			Cout() <<"Exe to Get  : " << exeToGet <<"\n";
