@@ -7,13 +7,13 @@ using namespace Upp;
 
 
 EasyVersioning::EasyVersioning(Upp::String _pathNewSoftWare, Versioning* _target){
-	pathNewSoftWare =	_pathNewSoftWare;
-	TargertedSoft = (Versioning*) _target;
+	pathNewSoftWare =_pathNewSoftWare;
+	TargertedSoft =(Versioning*) _target;
 }
 EasyVersioning::EasyVersioning(){}
 
 void EasyVersioning::isOutDated(){
-	const Vector<String>& cmdline = CommandLine();
+	const Vector<String> &cmdline = CommandLine();
 	Cout() << "getCount : " << cmdline.GetCount() <<"\n";
 	for(int i = 0; i < cmdline.GetCount(); i++) {
 		Cout() << "Commande : "  << i << " = " << cmdline[i] <<"\n";
@@ -29,7 +29,14 @@ void EasyVersioning::isOutDated(){
 					Exit(0); //On renvoie 0 si le client est à jour
 				}
 			}
-		//	break;
+		}
+		else if( cmdline[i].Compare("--Version") == 0 ){
+			std::ofstream myfile;
+			myfile.open ("VERSION");
+			myfile <<  std::to_string( TargertedSoft->getVersioningVersion() );
+			myfile.close();
+			Cout() << "Création du fichier VERSION !" <<"\n";
+			Exit(0);
 		}
 	}
 }
@@ -46,62 +53,127 @@ bool EasyVersioning::isStringisANumber(Upp::String stringNumber){
     return false;
 }
 
+
+void EasyVersioning::EnableTime(){ //Enable TimeCheck Before asking for update(good to use when .exe or VERSION file is far away from client and may take a long time to check)
+	timerEnable = true;
+}
+
+void EasyVersioning::DisableTime(){ //Disable TimeCheck
+	timerEnable = false;
+}
+
+void EasyVersioning::setTimeofEachUpdateinMinute(int timeInMinute){//Allow  you to set time in minute for timeCheck
+	//30 Minutes = 180000000 milliseconde
+	timerValue =  (timeInMinute *60)* 100000;
+}
+
+void EasyVersioning::CreateFileVersion(){ //Create a File named VERSION with the version value of .exe
+	std::ofstream myfile;
+	myfile.open ("VERSION");
+	myfile <<  std::to_string( TargertedSoft->getVersioningVersion() );
+	myfile.close();
+	Cout() << "Création du fichier VERSION !" <<"\n";	
+}
+
+void EasyVersioning::EnableFileVersion(){ //Enable File Versionning instead of Cmd ask versionning
+	if(FileExists(pathNewSoftWare +"\\VERSION")){
+		fileVersionEnable=true;
+	}else{
+		CreateFileVersion();
+		fileVersionEnable=true;	
+	}
+}
+
+void EasyVersioning::DisableFileVersion(){ //Diable File Versionning
+	fileVersionEnable=false;
+}
+
+
 bool EasyVersioning::CheckForUpdate(){
 	if(checkLegacy()){
 		if(CheckDate()){
-			Upp::String path = pathNewSoftWare + "\\" + GetExeTitle() +".exe";
-			Cout() << "Chemin sur lequel taper : " << path <<"\n";
-			if(FileExists(path.ToStd().c_str())){
-				try{
-					STARTUPINFO si;
-				    PROCESS_INFORMATION pi;
-				    ZeroMemory( &si, sizeof(si) );
-				    si.cb = sizeof(si);
-				    ZeroMemory( &pi, sizeof(pi) );
-				    
-				    std::stringstream ss;
-					ss <<  " --Outdated ";
-					ss <<  std::to_string( TargertedSoft->getVersioningVersion());
-					std::string name = ss.str();
-				    char* cmd =(char*) name.c_str();
-				  	int code =0;
-					    // Start the child process. */
-					if( CreateProcess(path.ToStd().c_str(),   // No module name (use command line)
-								       	cmd,        // Command line
-								        NULL,           // Process handle not inheritable
-								        NULL,           // Thread handle not inheritable
-								        FALSE,          // Set handle inheritance to FALSE
-								        0,              // No creation flags
-								        NULL,           // Use parent's environment block
-								        NULL,           // Use parent's starting directory 
-								        &si,            // Pointer to STARTUPINFO structure
-								        &pi )           // Pointer to PROCESS_INFORMATION structure
-								    )
-					{
-						WaitForSingleObject(pi.hProcess,INFINITE);
+			int code =0;
+			if(!fileVersionEnable){
+				Upp::String path = pathNewSoftWare + "\\" + GetExeTitle() +".exe";
+				Cout() << "Chemin sur lequel taper : " << path <<"\n";
+				if(FileExists(path.ToStd().c_str())){
+					try{
+						STARTUPINFO si;
+					    PROCESS_INFORMATION pi;
+					    ZeroMemory( &si, sizeof(si) );
+					    si.cb = sizeof(si);
+					    ZeroMemory( &pi, sizeof(pi) );
+					    
+					    std::stringstream ss;
+						ss <<  " --Outdated ";
+						ss <<  std::to_string( TargertedSoft->getVersioningVersion());
+						std::string name = ss.str();
+					    char* cmd =(char*) name.c_str();
+						    // Start the child process. */
+						if( CreateProcess(path.ToStd().c_str(),   // No module name (use command line)
+									       	cmd,        // Command line
+									        NULL,           // Process handle not inheritable
+									        NULL,           // Thread handle not inheritable
+									        FALSE,          // Set handle inheritance to FALSE
+									        0,              // No creation flags
+									        NULL,           // Use parent's environment block
+									        NULL,           // Use parent's starting directory 
+									        &si,            // Pointer to STARTUPINFO structure
+									        &pi )           // Pointer to PROCESS_INFORMATION structure
+									    )
+						{
+							WaitForSingleObject(pi.hProcess,INFINITE);
+							
+							DWORD exit_code;
+							GetExitCodeProcess(pi.hProcess, &exit_code);
+							CloseHandle( pi.hProcess );
+							CloseHandle( pi.hThread );
+							code = exit_code;
+						}
+						Cout() << "Reponse du process : " << code <<"\n";
+						if(code == 1){
+							return true;
+						}
+					}catch(...){
+						return false;
+					}
+					
+				}
+				return false;
+			}else if(fileVersionEnable){
+				Upp::String path = pathNewSoftWare + "\\VERSION";
+				Cout() << "Chemin sur lequel taper : " << path <<"\n";
+				if(FileExists(path.ToStd().c_str())){
+					try{
+						FileIn in(path);
+						if(!in){
+							Cout() << "fichier VERSION inexistant"<<"\n";
+							return false;
+						}
+						String data ="";
+						while(!in.IsEof())
+							data << in.GetLine();
 						
-						DWORD exit_code;
-						GetExitCodeProcess(pi.hProcess, &exit_code);
-						CloseHandle( pi.hProcess );
-						CloseHandle( pi.hThread );
-						code = exit_code;
+						code = std::stoi(data.ToStd().c_str());
+						Cout() << "Reponse du process : " << code <<"\n";
+						if(code > TargertedSoft->getVersioningVersion()){
+							return true;
+						}
+					}catch(...){
+						return false;
 					}
-					Cout() << "Reponse du process : " << code <<"\n";
-					if(code == 1){
-						return true;
-					}
-				}catch(...){
-					return false;
 				}
 			}
-			return false;
 		}
 		else{
 			Cout() << "La dernière mise à jour était il y'a moins de 30 min"<<"\n";
 			return false;	
 		}
 	}
+	return false;
 }
+
+
 bool EasyVersioning::checkLegacy(){
 	if(GetExeFolder().Compare(this->pathNewSoftWare) ==0){
 		Cout() << "Vous utilisez l'exe serveur"<<"\n";
@@ -115,39 +187,44 @@ bool EasyVersioning::checkLegacy(){
 }
 
 bool EasyVersioning::CheckDate(){
-	FileIn in("timer.tms");
-	if(!in) {
+	if(timerEnable){
+		FileIn in("timer.tms");
+		if(!in) {
+				auto now = std::chrono::system_clock::now();
+				std::chrono::time_point<std::chrono::system_clock> epoch;
+				std::chrono::microseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - epoch);
+				
+				std::ofstream myfile;
+				myfile.open ("timer.tms");
+				myfile <<  std::to_string(ms.count());
+				myfile.close();
+				return true;
+			}
+			in.Seek(0);
+			String data="";
+			while(!in.IsEof())
+				data << in.GetLine();
+			
 			auto now = std::chrono::system_clock::now();
 			std::chrono::time_point<std::chrono::system_clock> epoch;
 			std::chrono::microseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - epoch);
-			
-			std::ofstream myfile;
-			myfile.open ("timer.tms");
-			myfile <<  std::to_string(ms.count());
-			myfile.close();
-			return true;
-		}
-		in.Seek(0);
-		String data="";
-		while(!in.IsEof())
-			data << in.GetLine();
-		
-		auto now = std::chrono::system_clock::now();
-		std::chrono::time_point<std::chrono::system_clock> epoch;
-		std::chrono::microseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - epoch);
-		Cout() << "Time between last update in ms : "  << (ms.count() - std::stod(data.ToStd())) <<"\n";
-		if ((ms.count() - std::stod(data.ToStd())) > 180000000){ //Dégueulasse mais bon 'lol';
-			std::ofstream myfile;
-			myfile.open ("timer.tms");
-			myfile <<  std::to_string(ms.count());
-			myfile.close();
-			return true;
-		}
-		return false;
+			Cout() << "Time between last update in ms : "  << (ms.count() - std::stod(data.ToStd())) <<"\n";
+			if ((ms.count() - std::stod(data.ToStd())) > timerValue){ //Dégueulasse mais bon 'lol';
+				std::ofstream myfile;
+				myfile.open ("timer.tms");
+				myfile <<  std::to_string(ms.count());
+				myfile.close();
+				return true;
+			}
+			return false;
+	}else{
+		return true;	
+	}
 }
 
-void EasyVersioning::Update(bool force){
-	if(checkLegacy()&& force){
+void EasyVersioning::Update(){
+	isOutDated(); 
+	if(CheckForUpdate()){
 		String exePath = GetExeFilePath();
 		String exeToGet =pathNewSoftWare +"\\"+GetExeTitle() +".exe";
 		Cout() <<"Exe to Get  : " << exeToGet <<"\n";
