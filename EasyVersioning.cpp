@@ -154,6 +154,7 @@ bool EasyVersioning::CheckForUpdate(){
 						while(!in.IsEof())
 							data << in.GetLine();
 						
+						in.Close();
 						code = std::stoi(data.ToStd().c_str());
 						Cout() << "Reponse du process : " << code <<"\n";
 						if(code > TargertedSoft->getVersioningVersion()){
