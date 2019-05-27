@@ -20,7 +20,7 @@ class EasyVersioning;
 		bool isStringisANumber(Upp::String stringNumber);
 		bool CheckDate();//Check if time before next update is higher than defined
 		bool CheckForUpdate();//Check for a possible update
-		void isOutDated(); //Check is programm was launch with cmd line to check for update
+		void CmdLineExecutor(); //Check is programm was launch with cmd line to check for update
 			
 	public:
 			/*Parametrage*/

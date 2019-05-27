@@ -12,7 +12,7 @@ EasyVersioning::EasyVersioning(Upp::String _pathNewSoftWare, Versioning* _target
 }
 EasyVersioning::EasyVersioning(){}
 
-void EasyVersioning::isOutDated(){
+void EasyVersioning::CmdLineExecutor(){
 	const Vector<String> &cmdline = CommandLine();
 	Cout() << "getCount : " << cmdline.GetCount() <<"\n";
 	for(int i = 0; i < cmdline.GetCount(); i++) {
@@ -36,7 +36,7 @@ void EasyVersioning::isOutDated(){
 			myfile <<  std::to_string( TargertedSoft->getVersioningVersion() );
 			myfile.close();
 			Cout() << "Création du fichier VERSION !" <<"\n";
-			Exit(0);
+			exit(0);
 		}
 	}
 }
@@ -76,12 +76,7 @@ void EasyVersioning::CreateFileVersion(){ //Create a File named VERSION with the
 }
 
 void EasyVersioning::EnableFileVersion(){ //Enable File Versionning instead of Cmd ask versionning
-	if(FileExists(pathNewSoftWare +"\\VERSION")){
-		fileVersionEnable=true;
-	}else{
-		CreateFileVersion();
-		fileVersionEnable=true;	
-	}
+	fileVersionEnable=true;
 }
 
 void EasyVersioning::DisableFileVersion(){ //Diable File Versionning
@@ -167,7 +162,7 @@ bool EasyVersioning::CheckForUpdate(){
 			}
 		}
 		else{
-			Cout() << "La dernière mise à jour était il y'a moins de 30 min"<<"\n";
+			Cout() << "La dernière mise à jour était il y'a moins de "<<  (timerValue/100000)/60  << " min !"<<"\n";
 			return false;	
 		}
 	}
@@ -224,7 +219,7 @@ bool EasyVersioning::CheckDate(){
 }
 
 void EasyVersioning::Update(){
-	isOutDated(); 
+	CmdLineExecutor(); 
 	if(CheckForUpdate()){
 		String exePath = GetExeFilePath();
 		String exeToGet =pathNewSoftWare +"\\"+GetExeTitle() +".exe";
