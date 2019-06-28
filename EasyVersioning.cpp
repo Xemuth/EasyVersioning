@@ -41,6 +41,8 @@ void EasyVersioning::CmdLineExecutor(){
 	}
 }
 
+
+
 bool EasyVersioning::isStringisANumber(Upp::String stringNumber){
 	if (std::isdigit(stringNumber[0]) || (stringNumber.GetCount() > 1 && (stringNumber[0] == '+')))
     {
